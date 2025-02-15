@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System Metrics Report</title>
+    
+    <!-- Link to Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Link to the external CSS file -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <h1>System Metrics Report</h1>
+    
+    <!-- Hidden file input -->
+    <input type="file" id="fileInput" accept=".log">
+    
+    <!-- Label styled as a button -->
+    <label for="fileInput" class="label-button">Choose Log File</label>
+    
+    <table id="metricsTable">
+        <thead>
+            <tr>
+                <th>Metric</th>
+                <th>Value</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+
+    <!-- Canvas for Chart.js -->
+    <canvas id="metricsChart" width="400" height="200"></canvas>
+
+    <footer>
+        <p>System Monitoring Tool &copy; 2024</p>
+    </footer>
+
+    <script>
+        let selectedFile = null; // Variable to hold the selected file
+        const metricsData = {}; // Object to store metrics and their values
+
+        // Event listener for file input change
+        document.getElementById('fileInput').addEventListener('change', function(event) {
+            selectedFile = event.target.files[0]; // Get the selected file
+            if (selectedFile) {
+                readFile(); // Read the file immediately after selection
+                setInterval(readFile, 5000); // Set interval to read the file every 5 seconds
+            }
+        });
+
+        // Function to read and display log data
+        function readFile() {
+            if (!selectedFile) {
+                console.log('No file selected.');
+                return;
+            }
+
+            const reader = new FileReader(); // Create a FileReader instance
+
+            reader.onload = function(e) {
+                const content = e.target.result; // Get the file content
+                const rows = content.trim().split('\n'); // Split into lines
+                const tableBody = document.querySelector('#metricsTable tbody');
+                tableBody.innerHTML = ''; // Clear previous data
+                metricsData.labels = []; // Reset labels for chart
+                metricsData.values = []; // Reset values for chart
+
+                rows.forEach(row => {
+                    const [metric, value] = row.split(':'); // Split each line into metric and value
+                    if (metric && value) {
+                        const trimmedMetric = metric.trim();
+                        const trimmedValue = parseFloat(value.trim());
+                        if (!isNaN(trimmedValue)) {
+                            metricsData.labels.push(trimmedMetric);
+                            metricsData.values.push(trimmedValue);
+                            
+                            const newRow = `<tr><td>${trimmedMetric}</td><td>${trimmedValue}</td></tr>`;
+                            tableBody.innerHTML += newRow; // Append new row to the table
+                        }
+                    }
+                });
+
+                updateChart(); // Update the chart with new data
+            };
+
+            reader.readAsText(selectedFile); // Read the file as text
+        }
+
+        // Function to update the chart with new data
+        function updateChart() {
+            const ctx = document.getElementById('metricsChart').getContext('2d');
+            if (window.myChart) {
+                window.myChart.destroy(); // Destroy previous chart instance if it exists
+            }
+            
+            window.myChart = new Chart(ctx, {
+                type: 'bar', // Choose chart type (bar, line, pie, etc.)
+                data: {
+                    labels: metricsData.labels,
+                    datasets: [{
+                        label: 'Metrics Values',
+                        data: metricsData.values,
+                        backgroundColor: 'rgba(75, 192, 192, 0.6)',
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        // Function to refresh data on page load
+        window.onload = function() {
+            const inputElement = document.getElementById('fileInput');
+            if (inputElement.files.length > 0) {
+                selectedFile = inputElement.files[0]; // Retain reference to previously selected file
+                readFile(); // Read from previously selected file on load
+            }
+        };
+    </script>
+</body>
+</html>
